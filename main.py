@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import re
+import subprocess
 from openai import OpenAI
 
 output_dir = './output'
@@ -51,16 +52,21 @@ def get_multi_line_input(msg="Enter text (type 'END' on a new line to finish): "
     return "\n".join(lines)
 
 
-def run_infer_on_file(java_file_li):
+def run_infer_on_file(java_file):
     """
     Using Facebook Infer to Analyse Specified Java File
     :param java_file_li: Path to the Java file to be analysed
     :return:
     """
-    command = [
+    command = ['infer', 'run', '--', 'javac', java_file]
 
-    ]
-
+    try:
+        result = subprocess.run(command, check=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running Infer: {e.stderr}")
 
 def get_response(prompt):
     pass
@@ -84,6 +90,8 @@ def main():
         print("No OpenAI API key found in environment. Proceeding to generate Java file based on input.")
         user_input = get_multi_line_input()
         generated_java_li = generate_java_file(user_input=user_input, output_dir=output_dir)
+        for java_file in generated_java_li:
+            run_infer_on_file(java_file)
 
 
 if __name__ == '__main__':
