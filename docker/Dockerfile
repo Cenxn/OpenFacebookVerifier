@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim AS compilator
+FROM debian:bullseye-slim
 
 LABEL maintainer "Infer team"
 
@@ -6,74 +6,32 @@ LABEL maintainer "Infer team"
 RUN apt-get update && \
     mkdir -p /usr/share/man/man1 && \
     apt-get install --yes --no-install-recommends \
-      autoconf \
-      automake \
-      bzip2 \
-      cmake \
       curl \
-      g++ \
-      gcc \
-      git \
       libc6-dev \
-      libgmp-dev \
-      libmpfr-dev \
-      libsqlite3-dev \
-      sqlite3 \
-      make \
-      opam \
       openjdk-11-jdk-headless \
-      patch \
-      patchelf \
-      pkg-config \
-      python3 \
-      python3-distutils \
-      unzip \
+      sqlite3 \
       xz-utils \
-      zlib1g-dev && \
+      zlib1g-dev \
+      python3 \
+      python3-pip \
+      git && \
     rm -rf /var/lib/apt/lists/*
 
-# Disable sandboxing
-# Without this opam fails to compile OCaml for some reason. We don't need sandboxing inside a Docker container anyway.
-RUN opam init --reinit --bare --disable-sandboxing --yes --auto-setup
+# Download the Infer release
+RUN INFER_VERSION=v1.1.0; \
+    cd /opt && \
+    curl -sL \
+      https://github.com/facebook/infer/releases/download/${INFER_VERSION}/infer-linux64-${INFER_VERSION}.tar.xz | \
+    tar xJ && \
+    rm -f /infer && \
+    ln -s ${PWD}/infer-linux64-$INFER_VERSION /infer \
 
-# Download the latest Infer from git
-RUN cd / && \
-    git clone --depth 1 https://github.com/facebook/infer/
-
-# Build opam deps first, then infer. This way if any step fails we
-# don't lose the significant amount of work done in the previous
-# steps.
-RUN cd /infer && ./build-infer.sh java --only-setup-opam
-RUN cd /infer && ./build-infer.sh java
-
-# Generate a release
-RUN cd /infer && \
-    make install-with-libs \
-    BUILD_MODE=opt \
-    PATCHELF=patchelf \
-    DESTDIR="/infer-release" \
-    libdir_relative_to_bindir="../lib"
-
-FROM debian:bullseye-slim AS executor
-
-RUN apt-get update && apt-get install --yes --no-install-recommends \
-    sqlite3 \
-    python3 \
-    python3-pip \
-    git \
-&& pip3 install python-dotenv openai \
-&& rm -rf /var/lib/apt/lists/*
+RUN pip3 install python-dotenv openai
 
 RUN cd / && \
     git clone https://github.com/Cenxn/OpenFacebookVerifier.git
 
-# Get the infer release
-COPY --from=compilator /infer-release/usr/local /infer
-
 # Install infer
 ENV PATH /infer/bin:${PATH}
 
-# if called with /infer-host mounted then copy infer there
-RUN if test -d /infer-host; then \
-      cp -av /infer/. /infer-host; \
-    fi
+ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64

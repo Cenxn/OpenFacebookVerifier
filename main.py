@@ -46,7 +46,7 @@ def get_multi_line_input(msg="Enter text (type 'END' on a new line to finish): "
     lines = []
     while True:
         line = input()
-        if line == "END":  # 用户输入END时结束输入
+        if line == "END":  # End input when user inputs END
             break
         lines.append(line)
     return "\n".join(lines)
