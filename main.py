@@ -119,7 +119,7 @@ def initial_request():
     print("ClassName: Class function description and requirements.")
     print("Type 'END' on a new line to finish.")
 
-    input_pattern = re.compile(r"\s,\s")  # Pattern to match "ClassName, Description"
+    input_pattern = re.compile(r"([^:]+)\s*:\s*(.+)")  # Pattern to match "ClassName: Description"
     inputs = []
 
     while True:
