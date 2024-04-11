@@ -183,7 +183,7 @@ def main():
 
             if all_files_valid:
                 print("All Java files are valid. Process completed.")
-                return
+                break
             else:
                 attempts += 1
                 print(f"Attempt {attempts}/5. Adjusting request...")
