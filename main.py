@@ -103,7 +103,7 @@ def get_response(prompt, previous_messages=[]):
         messages=chat_messages
     )
 
-    response_text = completion.choices[0].message['content'] if completion.choices else ""
+    response_text = completion.choices[0].message.content if completion.choices else ""
     updated_messages = previous_messages + [{"role": "user", "content": prompt},
                                             {"role": "assistant", "content": response_text}]
 
