@@ -23,20 +23,34 @@ def generate_java_file(user_input, output_dir):
     file_paths = []
     imports = extract_imports(user_input)
 
-    class_regex = re.compile(r'(public\s+)?class\s+(\w+)\s*{.*?}', re.DOTALL)
-    matches = class_regex.finditer(user_input)
-    for match in matches:
-        class_name = match.group(2)  # access class name
-        class_code = match.group(0)  # access class code
+    # Initialize counters and buffers
+    brace_counter = 0
+    class_code = ""
+    in_class = False
+    class_name = ""
 
-        file_content = imports + class_code
-
-        # Create a .java file for each class
-        file_name = os.path.join(output_dir, f"{class_name}.java")
-        with open(file_name, 'w') as file:
-            file.write(file_content)
-            file_paths.append(file_name)
-            print(f"[Generated] {file_name}")
+    for line in user_input.split("\n"):
+        if "class" in line and not in_class:
+            # Assuming class name is always after 'class' keyword and before any '{'
+            class_name = re.search(r"class\s+(\w+)", line).group(1)
+            in_class = True
+            class_code = line + "\n"
+            brace_counter = line.count("{") - line.count("}")
+        elif in_class:
+            brace_counter += line.count("{") - line.count("}")
+            class_code += line + "\n"
+            if brace_counter == 0:
+                # Class ends when brace_counter returns to zero
+                file_content = imports + class_code
+                file_name = os.path.join(output_dir, f"{class_name}.java")
+                with open(file_name, 'w') as file:
+                    file.write(file_content)
+                    file_paths.append(file_name)
+                    print(f"[Generated] {file_name}")
+                # Reset for next class
+                in_class = False
+                class_code = ""
+                class_name = ""
 
     return file_paths
 
