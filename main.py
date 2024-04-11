@@ -85,11 +85,10 @@ def run_infer_on_file(java_file):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, text=True)
         print(result.stdout)
-        if result.stderr or "ERROR" in result.stdout:
+        if "ERROR" in result.stderr or "error:" in result.stderr:
             error_msg = result.stderr if result.stderr else result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Error running Infer: {e.stderr}")
-        error_msg = e.stderr
 
     if "No issues found" in error_msg:
         return None
