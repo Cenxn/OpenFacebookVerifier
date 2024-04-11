@@ -88,7 +88,10 @@ def run_infer_on_file(java_file):
         print(f"Error running Infer: {e.stderr}")
         error_msg = e.stderr
 
-    return error_msg
+    if "No issues found" in error_msg:
+        return None
+    else:
+        return error_msg
 
 
 def get_response(prompt, previous_messages=[]):
