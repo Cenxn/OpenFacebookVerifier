@@ -29,20 +29,22 @@ def generate_java_file(user_input, output_dir):
     in_class = False
     class_name = ""
 
-    class_definition_pattern = re.compile(r"\bclass\s+(\w+)\s*{?")
+    class_definition_pattern = re.compile(r"\bclass\s+\w+(\s+\w+)*\s*{$")
 
     for line in user_input.split("\n"):
-        # Use regular expressions to detect class definitions
+        # Detecting class definitions using regular expressions
         match = class_definition_pattern.search(line)
         if match and not in_class:
             class_name = match.group(1)
             in_class = True
             class_code = line + "\n"
-            brace_counter = line.count("{") - line.count("}")
+            brace_counter += line.count("{")
         elif in_class:
-            brace_counter += line.count("{") - line.count("}")
+            # Update brace_counter for open and close braces
+            brace_counter += line.count("{")
+            brace_counter -= line.count("}")
             class_code += line + "\n"
-            if brace_counter == 0:
+            if brace_counter == 0: # Check if the current class block has ended
                 # Class ends when brace_counter returns to zero
                 file_content = imports + class_code
                 file_name = os.path.join(output_dir, f"{class_name}.java")
@@ -50,7 +52,7 @@ def generate_java_file(user_input, output_dir):
                     file.write(file_content)
                     file_paths.append(file_name)
                     print(f"[Generated] {file_name}")
-                # Reset for next class
+                # Reset for next class processing
                 in_class = False
                 class_code = ""
                 class_name = ""
