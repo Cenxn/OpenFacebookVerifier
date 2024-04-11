@@ -29,10 +29,13 @@ def generate_java_file(user_input, output_dir):
     in_class = False
     class_name = ""
 
+    class_definition_pattern = re.compile(r"\bclass\s+(\w+)\s*{?")
+
     for line in user_input.split("\n"):
-        if "class" in line and not in_class:
-            # Assuming class name is always after 'class' keyword and before any '{'
-            class_name = re.search(r"class\s+(\w+)", line).group(1)
+        # Use regular expressions to detect class definitions
+        match = class_definition_pattern.search(line)
+        if match and not in_class:
+            class_name = match.group(1)
             in_class = True
             class_code = line + "\n"
             brace_counter = line.count("{") - line.count("}")
