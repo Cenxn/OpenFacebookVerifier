@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import re
 import subprocess
-from openai import OpenAI
+import openai
 
 output_dir = './output'
 
@@ -79,15 +79,65 @@ def run_infer_on_file(java_file):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, text=True)
         print(result.stdout)
+        if result.stderr or "ERROR" in result.stdout:
+            error_msg = result.stderr if result.stderr else result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Error running Infer: {e.stderr}")
 
-def get_response(prompt):
-    pass
+    return error_msg
 
 
-def initial_request(prompt):
-    pass
+def get_response(prompt, previous_messages=[]):
+    """
+    Sends a request to the GPT model and retrieves the response.
+    Incorporates previous dialogue for continuity.
+    :param prompt: The current prompt to send.
+    :param previous_messages: A list of previous messages and responses for continuity.
+    :return: A tuple containing the updated messages list and the latest GPT response.
+    """
+    messages = previous_messages.copy()
+    messages.append({"role": "user", "content": prompt})
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+    )
+
+    # Add GPT's response to the messages list for context in future requests
+    messages.append({"role": "assistant", "content": response.choices[0].message['content']})
+
+    return messages, response.choices[0].message['content']
+
+
+def initial_request():
+    """
+        Prompts the user to enter their question following a specific structure
+        and ensures the input matches the expected format.
+        :return: input message
+        """
+    print("Please enter each class and its description following this structure:")
+    print("ClassName: Class function description and requirements.")
+    print("Type 'END' on a new line to finish.")
+
+    input_pattern = re.compile(r"\s,\s")  # Pattern to match "ClassName, Description"
+    inputs = []
+
+    while True:
+        line = input()
+        if line.strip().upper() == "END":
+            break
+        match = input_pattern.match(line)
+        if match:
+            inputs.append(match.groups())
+        else:
+            print("Input does not match expected format. Please try again.")
+
+        # Format the user input into a single string for the request
+    request_text = "Write a programme in Java that performs the following functions:\n"
+    for cls_name, description in inputs:
+        request_text += f"Define a [{cls_name}] class, [{description}].\n"
+
+    return request_text
 
 
 def main():
@@ -99,7 +149,32 @@ def main():
     api_key = os.getenv("OPENAI_API_KEY")
 
     if api_key:
-        user_question = input("Enter your question for GPT-3: ")
+        print("Let's get basic information of your request for GPT-3!")
+        request_text = initial_request()
+        messages = [{"role": "system", "content": "You are a helpful assistant."}]
+        attempts = 0
+
+        while attempts < 5:
+            messages, responses = get_response(request_text, messages)
+            generate_java_files = generate_java_file(responses, output_dir)
+            all_files_valid = True
+
+            for java_file in generate_java_files:
+                error_msg = run_infer_on_file(java_file)
+                if error_msg:
+                    print(f"Error detected by Facebook Infer in {java_file}: {error_msg}"
+                          f"\n ... Recall GPT-3 to recover it ...")
+                    all_files_valid = False
+                    os.remove(java_file)
+                    break
+
+            if all_files_valid:
+                print("All Java files are valid. Process completed.")
+                return
+            else:
+                attempts += 1
+                print(f"Attempt {attempts}/5. Adjusting request...")
+
     else:
         print("No OpenAI API key found in environment. Proceeding to generate Java file based on input.")
         user_input = get_multi_line_input()
