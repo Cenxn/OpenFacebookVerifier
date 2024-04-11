@@ -35,7 +35,8 @@ def generate_java_file(user_input, output_dir):
         # Detecting class definitions using regular expressions
         match = class_definition_pattern.search(line)
         if match and not in_class:
-            class_name = match.group(1)
+            words = line.split()
+            class_name = words[words.index("class") + 1]
             in_class = True
             class_code = line + "\n"
             brace_counter += line.count("{")
