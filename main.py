@@ -95,18 +95,35 @@ def get_response(prompt, previous_messages=[]):
     :param previous_messages: A list of previous messages and responses for continuity.
     :return: A tuple containing the updated messages list and the latest GPT response.
     """
-    messages = previous_messages.copy()
-    messages.append({"role": "user", "content": prompt})
 
-    response = openai.ChatCompletion.create(
+    # Construct the prompt using previous_messages to maintain context
+    chat_log = ""
+    for message in previous_messages:
+        chat_log += f'{message["role"]}: {message["content"]}\n'
+    chat_log += f'user: {prompt}' # Append the latest user prompt
+
+    # Use the gpt-3.5-turbo model for a completion request
+    response = openai.Completion.create(
         model="gpt-3.5-turbo",
-        messages=messages
+        prompt=chat_log,
+        temperature=0.7,
+        max_tokens=500,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
+        stop=None
     )
 
-    # Add GPT's response to the messages list for context in future requests
-    messages.append({"role": "assistant", "content": response.choices[0].message['content']})
+    # Extract the text of the response
+    response_text = response.choices[0].text.strip()
 
-    return messages, response.choices[0].message['content']
+    # Update previous_messages to include the latest exchange
+    updated_messages = previous_messages + [
+        {"role": "user", "content": prompt},
+        {"role": "assistant", "content": response_text}
+    ]
+
+    return updated_messages, response_text
 
 
 def initial_request():
@@ -151,11 +168,11 @@ def main():
     if api_key:
         print("Let's get basic information of your request for GPT-3!")
         request_text = initial_request()
-        messages = [{"role": "system", "content": "You are a helpful assistant."}]
+        dialogue_history = []
         attempts = 0
 
         while attempts < 5:
-            messages, responses = get_response(request_text, messages)
+            dialogue_history, responses = get_response(request_text, previous_messages=dialogue_history)
             generate_java_files = generate_java_file(responses, output_dir)
             all_files_valid = True
 
