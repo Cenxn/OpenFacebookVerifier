@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import re
 import subprocess
-import openai
+from openai import OpenAI
 
 output_dir = './output'
 
@@ -95,33 +95,17 @@ def get_response(prompt, previous_messages=[]):
     :param previous_messages: A list of previous messages and responses for continuity.
     :return: A tuple containing the updated messages list and the latest GPT response.
     """
+    client = OpenAI()
+    chat_messages = previous_messages + [{"role": "user", "content": prompt}]
 
-    # Construct the prompt using previous_messages to maintain context
-    chat_log = ""
-    for message in previous_messages:
-        chat_log += f'{message["role"]}: {message["content"]}\n'
-    chat_log += f'user: {prompt}' # Append the latest user prompt
-
-    # Use the gpt-3.5-turbo model for a completion request
-    response = openai.Completion.create(
+    completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        prompt=chat_log,
-        temperature=0.7,
-        max_tokens=500,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=None
+        messages=chat_messages
     )
 
-    # Extract the text of the response
-    response_text = response.choices[0].text.strip()
-
-    # Update previous_messages to include the latest exchange
-    updated_messages = previous_messages + [
-        {"role": "user", "content": prompt},
-        {"role": "assistant", "content": response_text}
-    ]
+    response_text = completion.choices[0].message['content'] if completion.choices else ""
+    updated_messages = previous_messages + [{"role": "user", "content": prompt},
+                                            {"role": "assistant", "content": response_text}]
 
     return updated_messages, response_text
 
@@ -168,21 +152,24 @@ def main():
     if api_key:
         print("Let's get basic information of your request for GPT-3!")
         request_text = initial_request()
-        dialogue_history = []
+        messages_list = [{"role": "system", "content": "You are a helpful assistant."}]
         attempts = 0
 
         while attempts < 5:
-            dialogue_history, responses = get_response(request_text, previous_messages=dialogue_history)
+            messages_list, responses = get_response(request_text, previous_messages=messages_list)
             generate_java_files = generate_java_file(responses, output_dir)
             all_files_valid = True
 
             for java_file in generate_java_files:
                 error_msg = run_infer_on_file(java_file)
                 if error_msg:
+                    error_info = f"There is a error detected by Facebook Infer in class {java_file}," \
+                                 f" it report that: \n {error_msg}, please recover it."
                     print(f"Error detected by Facebook Infer in {java_file}: {error_msg}"
                           f"\n ... Recall GPT-3 to recover it ...")
                     all_files_valid = False
                     os.remove(java_file)
+                    request_text = error_info
                     break
 
             if all_files_valid:
