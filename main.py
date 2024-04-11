@@ -87,13 +87,12 @@ def run_infer_on_file(java_file):
         print(result.stdout)
         if "ERROR" in result.stderr or "error:" in result.stderr:
             error_msg = result.stderr if result.stderr else result.stdout
+            if "No issues found" in error_msg:
+                error_msg = None
     except subprocess.CalledProcessError as e:
         print(f"Error running Infer: {e.stderr}")
 
-    if "No issues found" in error_msg:
-        return None
-    else:
-        return error_msg
+    return error_msg
 
 
 def get_response(prompt, previous_messages=[]):
