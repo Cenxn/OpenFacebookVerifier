@@ -76,7 +76,7 @@ def run_infer_on_file(java_file):
     :return:
     """
     command = ['infer', 'run', '--', 'javac', java_file]
-
+    error_msg = None
     try:
         result = subprocess.run(command, check=True,
                                 stdout=subprocess.PIPE,
@@ -86,6 +86,7 @@ def run_infer_on_file(java_file):
             error_msg = result.stderr if result.stderr else result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Error running Infer: {e.stderr}")
+        error_msg = e.stderr
 
     return error_msg
 
@@ -167,7 +168,8 @@ def main():
                 error_msg = run_infer_on_file(java_file)
                 if error_msg:
                     error_info = f"There is a error detected by Facebook Infer in class {java_file}," \
-                                 f" it report that: \n {error_msg}, please recover it."
+                                 f" it report that: \n {error_msg}, please recover it, " \
+                                 f"and regenerate the fixed class code."
                     print(f"Error detected by Facebook Infer in {java_file}: {error_msg}"
                           f"\n ... Recall GPT-3 to recover it ...")
                     all_files_valid = False
@@ -181,6 +183,12 @@ def main():
             else:
                 attempts += 1
                 print(f"Attempt {attempts}/5. Adjusting request...")
+        # Save messages_list to a text file after all attempts are complete
+        log_file_path = os.path.join(output_dir, "dialogue_log.txt")
+        with open(log_file_path, 'w') as log_file:
+            for message in messages_list:
+                log_file.write(f'{message["role"]}: {message["content"]}\n')
+        print(f"Dialogue log saved to {log_file_path}")
 
     else:
         print("No OpenAI API key found in environment. Proceeding to generate Java file based on input.")
