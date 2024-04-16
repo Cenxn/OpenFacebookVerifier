@@ -160,7 +160,10 @@ def main():
     if api_key:
         print("Let's get basic information of your request for GPT-3!")
         request_text = initial_request()
-        messages_list = [{"role": "system", "content": "You are a helpful assistant."}]
+        messages_list = [{"role": "system", "content": "You are an AI programming assistant."
+                                                       "Output the code in a single code block."
+                                                       "Avoid wrapping the whole response in triple backticks."
+                                                       "You can only give one reply for each conversation turn."}]
         attempts = 0
 
         while attempts < 5:
