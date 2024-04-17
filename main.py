@@ -172,6 +172,7 @@ def main():
             all_files_valid = True
 
             for java_file in generate_java_files:
+                request_text = ""
                 error_msg = run_infer_on_file(java_file)
                 if error_msg:
                     error_info = f"There is a error detected by Facebook Infer in class {java_file}," \
@@ -181,8 +182,7 @@ def main():
                           f"\n ... Recall GPT-3 to recover it ...")
                     all_files_valid = False
                     os.remove(java_file)
-                    request_text = error_info
-                    break
+                    request_text += error_info
 
             if all_files_valid:
                 print("All Java files are valid. Process completed.")
