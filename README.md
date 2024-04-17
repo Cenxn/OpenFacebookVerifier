@@ -1,5 +1,5 @@
 # OpenFacebookVerifier
-This is a script to validate LLM generated code based on [Facebook Infer](https://github.com/facebook/infer) implementation.
+This is a script to validate LLM generated code based on [Facebook Infer](https://github.com/facebook/infer).
 
 [Demo_1: NO API Setting](https://drive.google.com/file/d/1x8mGVQbVhWuUcWsq83j1VpdTWdPYbmWW/view?usp=sharing) [Demo_2: With API Setting](https://drive.google.com/file/d/19CxoHW1vdUkwQbTjCFg4j42bkjNLUkQZ/view?usp=sharing)
 
